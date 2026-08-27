@@ -700,20 +700,44 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
     }
   }
 
-  function hookScratchVM() {
+function hookScratchVM() {
     const vm = window.vm || (window.scaffolding && window.scaffolding.vm);
     if (vm && !isHooked) {
       isHooked = true;
+
+      // 1. 原有的廣播監聽 (開始計時)
       const originalStartHats = vm.runtime.startHats.bind(vm.runtime);
       vm.runtime.startHats = function(requestedHat, optFields, optVariables) {
-        if (requestedHat === 'event_whenbroadcastreceived' && optFields && optFields.BROADCAST_OPTION === '開始計時') {
-          scheduleInfiniteCycles();
+        if (requestedHat === 'event_whenbroadcastreceived' && optFields) {
+          if (optFields.BROADCAST_OPTION === '開始計時') {
+            scheduleInfiniteCycles();
+          }
         }
         return originalStartHats(requestedHat, optFields, optVariables);
       };
+
+      // 2. 攔截 TurboWarp Packager 的原生「暫停」鍵
+      if (typeof vm.runtime.pause === 'function') {
+        const originalPause = vm.runtime.pause.bind(vm.runtime);
+        vm.runtime.pause = function() {
+          stopAllAlarms(); // 按下暫停鍵：立刻清空背景鎖屏鬧鐘
+          console.log("【TurboWarp 暫停：背景鬧鐘已清空】");
+          return originalPause();
+        };
+      }
+
+      // 3. 攔截 TurboWarp Packager 的原生「繼續/播放」鍵
+      if (typeof vm.runtime.resume === 'function') {
+        const originalResume = vm.runtime.resume.bind(vm.runtime);
+        vm.runtime.resume = function() {
+          const result = originalResume();
+          scheduleInfiniteCycles(); // 按下恢復鍵：拿當前停住的 all 秒數重新預約！
+          console.log("【TurboWarp 恢復：重新預約背景鬧鐘】");
+          return result;
+        };
+      }
     }
   }
-
   document.addEventListener('click', hookScratchVM);
   document.addEventListener('touchstart', hookScratchVM);
 </script>
