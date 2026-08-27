@@ -679,27 +679,16 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
     }
   }
 
-  function playSound(buffer, startTime, durationSeconds) {
+function playSound(buffer, startTime, durationSeconds) {
+    if (!buffer) return; // 📍 沒抓到音效就直接跳過，絕不播放電子逼逼聲
+
     for (let i = 0; i < durationSeconds; i++) {
-      if (buffer) {
-        let source = window.alarmAudioCtx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(window.alarmAudioCtx.destination);
-        source.start(startTime + i);
-      } else {
-        let osc = window.alarmAudioCtx.createOscillator();
-        let gain = window.alarmAudioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, window.alarmAudioCtx.currentTime);
-        gain.gain.setValueAtTime(0.5, window.alarmAudioCtx.currentTime);
-        osc.connect(gain);
-        gain.connect(window.alarmAudioCtx.destination);
-        osc.start(startTime + i);
-        osc.stop(startTime + i + 0.3);
-      }
+      let source = window.alarmAudioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(window.alarmAudioCtx.destination);
+      source.start(startTime + i);
     }
   }
-
 function hookScratchVM() {
     const vm = window.vm || (window.scaffolding && window.scaffolding.vm);
     if (vm && !isHooked) {
